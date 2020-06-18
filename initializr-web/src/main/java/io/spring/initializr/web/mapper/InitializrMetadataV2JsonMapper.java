@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,12 +17,16 @@
 package io.spring.initializr.web.mapper;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.spring.initializr.generator.version.Version;
+import io.spring.initializr.generator.version.Version.Format;
+import io.spring.initializr.generator.version.VersionParser;
 import io.spring.initializr.metadata.DefaultMetadataElement;
 import io.spring.initializr.metadata.DependenciesCapability;
 import io.spring.initializr.metadata.Dependency;
@@ -53,27 +57,17 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 
 	public InitializrMetadataV2JsonMapper() {
 		this.templateVariables = new TemplateVariables(
-				new TemplateVariable("dependencies",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("packaging",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("javaVersion",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("language",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("bootVersion",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("groupId",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("artifactId",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("version",
-						TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("dependencies", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("packaging", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("javaVersion", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("language", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("bootVersion", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("groupId", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("artifactId", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("version", TemplateVariable.VariableType.REQUEST_PARAM),
 				new TemplateVariable("name", TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("description",
-						TemplateVariable.VariableType.REQUEST_PARAM),
-				new TemplateVariable("packageName",
-						TemplateVariable.VariableType.REQUEST_PARAM));
+				new TemplateVariable("description", TemplateVariable.VariableType.REQUEST_PARAM),
+				new TemplateVariable("packageName", TemplateVariable.VariableType.REQUEST_PARAM));
 	}
 
 	protected JsonNodeFactory nodeFactory() {
@@ -89,7 +83,7 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 		singleSelect(delegate, metadata.getPackagings());
 		singleSelect(delegate, metadata.getJavaVersions());
 		singleSelect(delegate, metadata.getLanguages());
-		singleSelect(delegate, metadata.getBootVersions());
+		singleSelect(delegate, metadata.getBootVersions(), this::mapVersionMetadata);
 		text(delegate, metadata.getGroupId());
 		text(delegate, metadata.getArtifactId());
 		text(delegate, metadata.getVersion());
@@ -116,7 +110,7 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 	private String generateTemplatedUri(String appUrl, Type type) {
 		String uri = (appUrl != null) ? appUrl + type.getAction() : type.getAction();
 		uri = uri + "?type=" + type.getId();
-		UriTemplate uriTemplate = new UriTemplate(uri, this.templateVariables);
+		UriTemplate uriTemplate = UriTemplate.of(uri, this.templateVariables);
 		return uriTemplate.toString();
 	}
 
@@ -124,8 +118,7 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 		ObjectNode dependencies = nodeFactory.objectNode();
 		dependencies.put("type", capability.getType().getName());
 		ArrayNode values = nodeFactory.arrayNode();
-		values.addAll(capability.getContent().stream().map(this::mapDependencyGroup)
-				.collect(Collectors.toList()));
+		values.addAll(capability.getContent().stream().map(this::mapDependencyGroup).collect(Collectors.toList()));
 		dependencies.set("values", values);
 		parent.set(capability.getId(), dependencies);
 	}
@@ -138,13 +131,17 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 			type.put("default", defaultType.getId());
 		}
 		ArrayNode values = nodeFactory.arrayNode();
-		values.addAll(capability.getContent().stream().map(this::mapType)
-				.collect(Collectors.toList()));
+		values.addAll(capability.getContent().stream().map(this::mapType).collect(Collectors.toList()));
 		type.set("values", values);
 		parent.set("type", type);
 	}
 
 	protected void singleSelect(ObjectNode parent, SingleSelectCapability capability) {
+		singleSelect(parent, capability, this::mapValue);
+	}
+
+	protected void singleSelect(ObjectNode parent, SingleSelectCapability capability,
+			Function<MetadataElement, ObjectNode> valueMapper) {
 		ObjectNode single = nodeFactory.objectNode();
 		single.put("type", capability.getType().getName());
 		DefaultMetadataElement defaultType = capability.getDefault();
@@ -152,8 +149,7 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 			single.put("default", defaultType.getId());
 		}
 		ArrayNode values = nodeFactory.arrayNode();
-		values.addAll(capability.getContent().stream().map(this::mapValue)
-				.collect(Collectors.toList()));
+		values.addAll(capability.getContent().stream().map(valueMapper).collect(Collectors.toList()));
 		single.set("values", values);
 		parent.set(capability.getId(), single);
 	}
@@ -171,8 +167,7 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 	protected ObjectNode mapDependencyGroup(DependencyGroup group) {
 		ObjectNode result = nodeFactory.objectNode();
 		result.put("name", group.getName());
-		if ((group instanceof Describable)
-				&& ((Describable) group).getDescription() != null) {
+		if ((group instanceof Describable) && ((Describable) group).getDescription() != null) {
 			result.put("description", ((Describable) group).getDescription());
 		}
 		ArrayNode items = nodeFactory.arrayNode();
@@ -187,8 +182,8 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 	}
 
 	protected ObjectNode mapDependency(Dependency dependency) {
-		if (dependency.getVersionRange() == null) {
-			// only map the dependency if no versionRange is set
+		if (dependency.getCompatibilityRange() == null) {
+			// only map the dependency if no compatibilityRange is set
 			return mapValue(dependency);
 		}
 		return null;
@@ -203,12 +198,23 @@ public class InitializrMetadataV2JsonMapper implements InitializrMetadataJsonMap
 		return result;
 	}
 
+	private ObjectNode mapVersionMetadata(MetadataElement value) {
+		ObjectNode result = nodeFactory.objectNode();
+		result.put("id", formatVersion(value.getId()));
+		result.put("name", value.getName());
+		return result;
+	}
+
+	protected String formatVersion(String versionId) {
+		Version version = VersionParser.DEFAULT.safeParse(versionId);
+		return (version != null) ? version.format(Format.V1).toString() : versionId;
+	}
+
 	protected ObjectNode mapValue(MetadataElement value) {
 		ObjectNode result = nodeFactory.objectNode();
 		result.put("id", value.getId());
 		result.put("name", value.getName());
-		if ((value instanceof Describable)
-				&& ((Describable) value).getDescription() != null) {
+		if ((value instanceof Describable) && ((Describable) value).getDescription() != null) {
 			result.put("description", ((Describable) value).getDescription());
 		}
 		return result;

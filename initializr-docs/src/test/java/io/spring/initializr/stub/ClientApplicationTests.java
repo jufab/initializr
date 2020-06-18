@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +18,7 @@ package io.spring.initializr.stub;
 
 import java.net.URI;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,16 +33,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringRunner.class)
+// tag::test[]
 @SpringBootTest(webEnvironment = WebEnvironment.NONE)
 @AutoConfigureStubRunner(ids = "io.spring.initializr:initializr-web:${project.version}", stubsMode = StubsMode.LOCAL)
-// tag::test[]
-public class ClientApplicationTests {
+class ClientApplicationTests {
 
 	@Autowired
 	private StubFinder stubFinder;
@@ -52,13 +49,11 @@ public class ClientApplicationTests {
 	private RestTemplate restTemplate;
 
 	@Test
-	public void testCurrentMetadata() {
+	void testCurrentMetadata() {
 		RequestEntity<Void> request = RequestEntity.get(createUri("/"))
-				.accept(MediaType.valueOf("application/vnd.initializr.v2.1+json"))
-				.build();
+				.accept(MediaType.valueOf("application/vnd.initializr.v2.1+json")).build();
 
-		ResponseEntity<String> response = this.restTemplate.exchange(request,
-				String.class);
+		ResponseEntity<String> response = this.restTemplate.exchange(request, String.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		// other assertions here
 	}
@@ -72,7 +67,7 @@ public class ClientApplicationTests {
 	static class Config {
 
 		@Bean
-		public RestTemplate restTemplate(RestTemplateBuilder builder) {
+		RestTemplate restTemplate(RestTemplateBuilder builder) {
 			return builder.build();
 		}
 

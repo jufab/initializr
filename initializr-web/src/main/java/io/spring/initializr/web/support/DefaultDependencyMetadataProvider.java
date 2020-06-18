@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,13 +19,13 @@ package io.spring.initializr.web.support;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.spring.initializr.generator.version.Version;
 import io.spring.initializr.metadata.BillOfMaterials;
 import io.spring.initializr.metadata.Dependency;
 import io.spring.initializr.metadata.DependencyMetadata;
 import io.spring.initializr.metadata.DependencyMetadataProvider;
 import io.spring.initializr.metadata.InitializrMetadata;
 import io.spring.initializr.metadata.Repository;
-import io.spring.initializr.util.Version;
 
 import org.springframework.cache.annotation.Cacheable;
 
@@ -49,23 +49,22 @@ public class DefaultDependencyMetadataProvider implements DependencyMetadataProv
 		Map<String, Repository> repositories = new LinkedHashMap<>();
 		for (Dependency dependency : dependencies.values()) {
 			if (dependency.getRepository() != null) {
-				repositories.put(dependency.getRepository(), metadata.getConfiguration()
-						.getEnv().getRepositories().get(dependency.getRepository()));
+				repositories.put(dependency.getRepository(),
+						metadata.getConfiguration().getEnv().getRepositories().get(dependency.getRepository()));
 			}
 		}
 
 		Map<String, BillOfMaterials> boms = new LinkedHashMap<>();
 		for (Dependency dependency : dependencies.values()) {
 			if (dependency.getBom() != null) {
-				boms.put(dependency.getBom(), metadata.getConfiguration().getEnv()
-						.getBoms().get(dependency.getBom()).resolve(bootVersion));
+				boms.put(dependency.getBom(),
+						metadata.getConfiguration().getEnv().getBoms().get(dependency.getBom()).resolve(bootVersion));
 			}
 		}
 		// Each resolved bom may require additional repositories
 		for (BillOfMaterials bom : boms.values()) {
 			for (String id : bom.getRepositories()) {
-				repositories.put(id,
-						metadata.getConfiguration().getEnv().getRepositories().get(id));
+				repositories.put(id, metadata.getConfiguration().getEnv().getRepositories().get(id));
 			}
 		}
 
